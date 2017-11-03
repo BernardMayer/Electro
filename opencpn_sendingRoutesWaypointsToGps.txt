@@ -1,0 +1,4 @@
+https://raspbian-france.fr/installer-raspbian-premier-demarrage-configuration/
+
+https://opencpn.org/wiki/dokuwiki/doku.php?id=opencpn:opencpn_user_manual:connections#sending_routes_and_waypoints_to_a_gps
+
