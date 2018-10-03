@@ -2,6 +2,7 @@
 #(C) Fabrice Sincère 
 # http://fsincere.free.fr/isn/python/cours_python_tkinter.php
 # http://effbot.org/tkinterbook/
+# https://www.tutorialspoint.com/python/tk_spinbox.htm
 
 from tkinter import *
 import random
@@ -41,8 +42,11 @@ LabelTitle.pack(padx=5, pady=5)#side=LEFT,
 
 FrameDate = Frame(w, borderwidth=2, relief=GROOVE)
 FrameDate.pack(padx=10,pady=10)
+vYear = StringVar(FrameDate)
+vYear.set(2021)
+
 ##  Annee
-wYear = Spinbox(master=FrameDate, width_=4, from_=2018, to_=2024)
+wYear = Spinbox(master=FrameDate, width_=4, from_=2017, to_=2024, textvariable=vYear)
 wYear.pack(side = LEFT, padx = 5, pady = 5)
 ##  Mois
 wMonth = Spinbox(master=FrameDate, width_=2, from_=1, to_=12)
