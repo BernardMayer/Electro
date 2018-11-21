@@ -13,14 +13,29 @@ def NouveauLance():
     nb = random.randint(1,6)
     Texte.set('Résultat -> ' + str(nb))
 
+print("[" + os.name + "]")
+# [nt] 'posix', 'nt', 'java'.
+    
 # Def de la commande pour recuperer la date et l'heure
-dateGetCmd    = 'date /T'
-timeGetCmd    = 'time /T'
-dateGetResult = os.popen(dateGetCmd).read().rstrip() #python2 [:-1]
-timeGetResult = os.popen(timeGetCmd).read()[:-1]
-#print("[" + dateGetResult + "] [" + timeGetResult + "]")
-
-
+if (os.name == "nt") :
+    dateGetCmd    = 'date /T' # Windows
+    timeGetCmd    = 'time /T' # Windows
+    dateGetResult = os.popen(dateGetCmd).read().rstrip() #python2 [:-1]
+    timeGetResult = os.popen(timeGetCmd).read()[:-1]
+    # print("[" + dateGetResult + "] [" + timeGetResult + "]")
+    # [21/11/2018] [10:43]
+    (jj, mm, aaaa) = dateGetResult.split('/')
+    (hh, ii) = timeGetResult.split(':')
+    # print("[" + aaaa + "][" + mm + "][" + jj + "][" + hh + "][" + ii + "]")
+    # [2018][11][21][10][48]
+else :
+    datetimeGetCmd = 'sudo hwclock -r'
+    datetimeGetResult = os.popen(datetimeGetCmd).read()[:-1]
+    # TODO
+    # Le retour de la commande peut merder (pas de composant RTC, ...)
+    
+    
+    
     
 # Création de la fenêtre principale (main window)
 w = Tk()
@@ -31,59 +46,93 @@ w.option_add( "*font", "lucida 14 bold italic" )
 # default_font = tkFont.nametofont("TkDefaultFont")
 # default_font.configure(size=48)
 
-w.title('Get RTC date and time')
+w.title("Mise a l'heure de la framboise")
 w.geometry('800x300+400+400')
 w['bg'] = 'bisque'
 
 FrameTitle = Frame(w, borderwidth=2, relief=GROOVE, bg="white")
 FrameTitle.pack(side=TOP, padx=5, pady=5)
-LabelTitle = Label(FrameTitle, text="Mise a l'heure de la framboise", fg="navy")
+LabelTitle = Label(FrameTitle, text="Mise a l'heure", fg="navy")
 LabelTitle.pack(padx=5, pady=5)#side=LEFT, 
 
 FrameDate = Frame(w, borderwidth=2, relief=GROOVE)
 FrameDate.pack(padx=10,pady=10)
-vYear = StringVar(FrameDate)
-vYear.set(2021)
-
-##  Annee
-wYear = Spinbox(master=FrameDate, width_=4, from_=2017, to_=2024, textvariable=vYear)
-wYear.pack(side = LEFT, padx = 5, pady = 5)
-##  Mois
-wMonth = Spinbox(master=FrameDate, width_=2, from_=1, to_=12)
-wMonth.pack(side = LEFT, padx = 5, pady = 5)
-##  Jour
-wDay = Spinbox(master=FrameDate, width_=2, from_=1, to_=31)
-wDay.pack(side = LEFT, padx = 5, pady = 5)
 
 FrameTime = Frame(w, borderwidth=2, relief=GROOVE)
 FrameTime.pack(padx=10,pady=10)#side=LEFT,
-##  Heure
-wHour = Spinbox(master=FrameTime, width_=2, from_=0, to_=23)
-wHour.pack(side = LEFT, padx = 5, pady = 5)
-##  Mois
-wMinute = Spinbox(master=FrameTime, width_=2, from_=0, to_=59)
-wMinute.pack(side = LEFT, padx = 5, pady = 5)
-##  Jour
-wSecond = Spinbox(master=FrameTime, width_=2, from_=0, to_=59)
-wSecond.pack(side = LEFT, padx = 5, pady = 5)
 
 FrameAction = Frame(w, borderwidth=2, relief=GROOVE)
 FrameAction.pack(padx=5, pady=5)#side=BOTTOM, 
 
+    
+##  Annee
+vYear = StringVar(FrameDate)
+wYear = Spinbox(master=FrameDate, width_=4, from_=2017, to_=2024, textvariable=vYear)
+wYear.pack(side = LEFT, padx = 5, pady = 5)
+if (aaaa.isnumeric() and int(aaaa) > 1970) :
+    vYear.set(aaaa)
+else :
+    vYear.set("2019")
+
+##  Mois
+vMonth = StringVar(FrameDate)
+wMonth = Spinbox(master=FrameDate, width_=2, from_=1, to_=12, textvariable=vMonth)
+wMonth.pack(side = LEFT, padx = 5, pady = 5)
+if (mm.isnumeric() and int(mm) > 0 and int(mm) < 13) :
+    vMonth.set(mm)
+else :
+    vMonth.set("07")
+
+##  Jour
+vDay = StringVar(FrameDate)
+wDay = Spinbox(master=FrameDate, width_=2, from_=1, to_=31, textvariable=vDay)
+wDay.pack(side = LEFT, padx = 5, pady = 5)
+if (jj.isnumeric() and int(jj) > 0 and int(jj) < 32) :
+    vDay.set(jj)
+else :
+    vDay.set("14")
+
+
+##  Heure
+vHour = StringVar(FrameDate)
+wHour = Spinbox(master=FrameTime, width_=2, from_=0, to_=23, textvariable=vHour)
+wHour.pack(side = LEFT, padx = 5, pady = 5)
+if (hh.isnumeric() and int(hh) > 0 and int(hh) < 24) :
+    vHour.set(hh)
+else :
+    vHour.set("14")
+
+##  Minutes
+vMinute = StringVar(FrameDate)
+wMinute = Spinbox(master=FrameTime, width_=2, from_=0, to_=59, textvariable=vMinute)
+wMinute.pack(side = LEFT, padx = 5, pady = 5)
+if (ii.isnumeric() and int(ii) > 0 and int(ii) < 59) :
+    vMinute.set(ii)
+else :
+    vMinute.set("00")
+
+##  Secondes
+vSecond = StringVar(FrameDate)
+wSecond = Spinbox(master=FrameTime, width_=2, from_=0, to_=59, textvariable=vSecond)
+wSecond.pack(side = LEFT, padx = 5, pady = 5)
+vSecond.set("00")
+
+
 # Création d'un widget Button (bouton Lancer)
-# BoutonLancer = Button(FrameAction, text ='Lancer', command = NouveauLance)
+BoutonLancer = Button(FrameAction, text="Mettre à l'heure", command=NouveauLance)
 # Positionnement du widget avec la méthode pack()
-# BoutonLancer.pack(side = LEFT, padx = 5, pady = 5)
-
-# Création d'un widget Button (bouton Quitter)
-BoutonQuitter = Button(FrameAction, text ='Quitter', command = w.destroy)
-BoutonQuitter.pack(side = LEFT, padx = 5, pady = 5)
-
-Texte = StringVar()
-NouveauLance()
+BoutonLancer.pack(side = LEFT, padx = 5, pady = 5)
 
 # Création d'un widget Label (texte 'Résultat -> x')
+Texte = StringVar()
 LabelResultat = Label(FrameAction, textvariable = Texte, fg ='red', bg ='white')
 LabelResultat.pack(side = LEFT, padx = 5, pady = 5)
+
+# Création d'un widget Button (bouton Quitter)
+BoutonQuitter = Button(FrameAction, text='Quitter', command=w.destroy)
+BoutonQuitter.pack(side = LEFT, padx = 5, pady = 5)
+
+# NouveauLance()
+
 
 w.mainloop()
