@@ -13,7 +13,7 @@ def NouveauLance():
     nb = random.randint(1,6)
     Texte.set('Résultat -> ' + str(nb))
 
-print("[" + os.name + "]")
+# print("[" + os.name + "]")
 # [nt] 'posix', 'nt', 'java'.
     
 # Def de la commande pour recuperer la date et l'heure
@@ -29,12 +29,23 @@ if (os.name == "nt") :
     # print("[" + aaaa + "][" + mm + "][" + jj + "][" + hh + "][" + ii + "]")
     # [2018][11][21][10][48]
 else :
-    datetimeGetCmd = 'sudo hwclock -r'
-    datetimeGetResult = os.popen(datetimeGetCmd).read()[:-1]
-    # TODO
-    # Le retour de la commande peut merder (pas de composant RTC, ...)
-    
-    
+    try :    
+        datetimeGetCmd = 'sudo hwclock -r'
+        datetimeGetResult = os.popen(datetimeGetCmd).read()[:-1]
+        # TODO
+        # Le retour de la commande peut merder (pas de composant RTC, ...)
+    except :
+        jj = '18'
+        mm = '03'
+        aaaa = '2021'
+        hh = '23'
+        ii = '59'
+
+# jj = '14'
+# mm = '07'
+# aaaa = '2019'
+# hh = '23'
+# ii = '59'
     
     
 # Création de la fenêtre principale (main window)
