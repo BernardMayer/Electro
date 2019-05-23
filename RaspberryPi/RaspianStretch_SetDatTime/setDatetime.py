@@ -1,10 +1,15 @@
+#!/usr/bin/env python
 # script de.py
-#(C) Fabrice Sincère 
+#(C) Fabrice Sincere 
 # http://fsincere.free.fr/isn/python/cours_python_tkinter.php
 # http://effbot.org/tkinterbook/
 # https://www.tutorialspoint.com/python/tk_spinbox.htm
 
-from tkinter import *
+try :
+    from Tkinter import *
+except ImportError :
+    from tkinter import *
+    
 import random
 import os
 
@@ -16,11 +21,15 @@ def SetDateTime():
     heure = wHour.get()
     minutes = wMinute.get()
     secondes = wSecond.get()
-    Texte.set(annee + "-" + mois + "-" + jour + " " + heure + ":" + minutes + ":" + secondes)
+    ts = annee + "-" + mois + "-" + jour + " " + heure + ":" + minutes + ":" + secondes
+    Texte.set(ts)
+    datetimeSetCmd = 'sudo timedatectl set-ntp false; sudo timedatectl set-time "' + ts + '";sudo timedatectl set-ntp true;'
+    ret = os.popen(datetimeSetCmd).read()
+    print(ret)
 
 def NouveauLance():
     nb = random.randint(1,6)
-    Texte.set('Résultat -> ' + str(nb))
+    Texte.set('Resultat -> ' + str(nb))
 
 # print("[" + os.name + "]")
 # [nt] 'posix', 'nt', 'java'.
@@ -41,6 +50,15 @@ else :
     try :    
         datetimeGetCmd = 'sudo hwclock -r'
         datetimeGetResult = os.popen(datetimeGetCmd).read()[:-1]
+        # print(datetimeGetResult)
+        # 2019-05-21 20:39:44.943320+0200
+        aaaa = datetimeGetResult[0:4]
+        mm = datetimeGetResult[5:7]
+        jj = datetimeGetResult[8:10]
+        hh = datetimeGetResult[11:13]
+        ii = datetimeGetResult[14:16]
+        ss = datetimeGetResult[17:19]
+        # print(aaaa, mm, jj, hh, ii, ss)
         
         # TODO
         # Le retour de la commande peut merder (pas de composant RTC, ...)
@@ -81,7 +99,7 @@ for i in range(32, 61) :
     # ii = str(i).zfill(2)
     l60.append(i)
 
-# Création de la fenêtre principale (main window)
+# Creation de la fenetre principale (main window)
 w = Tk()
 ## Taille des caracteres 
 w.option_add( "*font", "lucida 14 bold italic" )
@@ -113,7 +131,7 @@ FrameAction.pack(padx=5, pady=5)#side=BOTTOM,
 vYear = StringVar(FrameDate)
 wYear = Spinbox(master=FrameDate, width_=4, from_=2017, to_=2024, textvariable=vYear)
 wYear.pack(side = LEFT, padx = 5, pady = 5)
-if (aaaa.isnumeric() and int(aaaa) > 1970) :
+if (aaaa.isdigit() and int(aaaa) > 1970) :
     vYear.set(aaaa)
 else :
     vYear.set("2019")
@@ -123,7 +141,7 @@ vMonth = StringVar(FrameDate)
 # wMonth = Spinbox(master=FrameDate, width_=2, from_=1, to_=12, textvariable=vMonth)
 wMonth = Spinbox(master=FrameDate, width_=2, values=l12, textvariable=vMonth)
 wMonth.pack(side = LEFT, padx = 5, pady = 5)
-if (mm.isnumeric() and int(mm) > 0 and int(mm) < 13) :
+if (mm.isdigit() and int(mm) > 0 and int(mm) < 13) :
     vMonth.set(mm)
 else :
     vMonth.set("07")
@@ -132,7 +150,7 @@ else :
 vDay = StringVar(FrameDate)
 wDay = Spinbox(master=FrameDate, width_=2, values=l31, textvariable=vDay)
 wDay.pack(side = LEFT, padx = 5, pady = 5)
-if (jj.isnumeric() and int(jj) > 0 and int(jj) < 32) :
+if (jj.isdigit() and int(jj) > 0 and int(jj) < 32) :
     vDay.set(jj)
 else :
     vDay.set("14")
@@ -142,7 +160,7 @@ else :
 vHour = StringVar(FrameDate)
 wHour = Spinbox(master=FrameTime, width_=2, values=l24, textvariable=vHour)
 wHour.pack(side = LEFT, padx = 5, pady = 5)
-if (hh.isnumeric() and int(hh) > 0 and int(hh) < 24) :
+if (hh.isdigit() and int(hh) > 0 and int(hh) < 24) :
     vHour.set(hh)
 else :
     vHour.set("14")
@@ -151,7 +169,7 @@ else :
 vMinute = StringVar(FrameDate)
 wMinute = Spinbox(master=FrameTime, width_=2, values=l60, textvariable=vMinute)
 wMinute.pack(side = LEFT, padx = 5, pady = 5)
-if (ii.isnumeric() and int(ii) > 0 and int(ii) < 59) :
+if (ii.isdigit() and int(ii) > 0 and int(ii) < 59) :
     vMinute.set(ii)
 else :
     vMinute.set("00")
@@ -163,18 +181,18 @@ wSecond.pack(side = LEFT, padx = 5, pady = 5)
 vSecond.set("00")
 
 
-# Création d'un widget Button (bouton Lancer)
-# BoutonLancer = Button(FrameAction, text="Mettre à l'heure", command=NouveauLance)
-BoutonLancer = Button(FrameAction, text="Mettre à l'heure", command=SetDateTime)
-# Positionnement du widget avec la méthode pack()
+# Creation d'un widget Button (bouton Lancer)
+# BoutonLancer = Button(FrameAction, text="Mettre a l'heure", command=NouveauLance)
+BoutonLancer = Button(FrameAction, text="Mettre a l'heure", command=SetDateTime)
+# Positionnement du widget avec la methode pack()
 BoutonLancer.pack(side = LEFT, padx = 5, pady = 5)
 
-# Création d'un widget Label (texte 'Résultat -> x')
+# Creation d'un widget Label (texte 'Resultat -> x')
 Texte = StringVar()
 LabelResultat = Label(FrameAction, textvariable = Texte, fg ='red', bg ='white')
 LabelResultat.pack(side = LEFT, padx = 5, pady = 5)
 
-# Création d'un widget Button (bouton Quitter)
+# Creation d'un widget Button (bouton Quitter)
 BoutonQuitter = Button(FrameAction, text='Quitter', command=w.destroy)
 BoutonQuitter.pack(side = LEFT, padx = 5, pady = 5)
 
