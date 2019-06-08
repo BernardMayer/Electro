@@ -1,0 +1,11 @@
+http://www.davesmotleyprojects.com/raspi/raspi-data-logger/raspi-data-logger.html
+
+https://makersportal.com/blog/2018/2/25/python-datalogger-reading-the-serial-output-from-arduino-to-analyze-data-using-pyserial
+
+https://blog.f0cks.net/projects/Raspberry-serial-data-logger/
+
+https://apps.fishandwhistle.net/archives/1155
+
+https://raspberry-pi.developpez.com/cours-tutoriels/projets-rpi-zero/traceur-gps/
+
+https://www.sparkfun.com/tutorials/403
