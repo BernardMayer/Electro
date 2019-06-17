@@ -1,0 +1,12 @@
+2019-06-17
+pip install pyserial
+
+https://stackoverflow.com/questions/12090503/listing-available-com-ports-with-python 
+
+W7 + python 3.6
+D:\myTools\Python\Python36>python -m serial.tools.list_ports -v
+COM3
+    desc: Intel(R) Active Management Technology - SOL (COM3)
+    hwid: PCI\VEN_8086&DEV_A13D&SUBSYS_802F103C&REV_31\3&11583659&0&B3
+1 ports found
+
