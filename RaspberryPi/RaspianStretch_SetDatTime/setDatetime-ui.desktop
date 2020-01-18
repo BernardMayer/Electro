@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Exec=/home/pi/bin/setDatetime-ui.py
+Name=Mise_a_l_heure_de_la_framboise
+X_GNOME-Autostart-enabled=true
+Icon=
+Comment=
