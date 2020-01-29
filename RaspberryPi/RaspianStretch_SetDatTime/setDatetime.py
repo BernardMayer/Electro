@@ -4,6 +4,7 @@
 # http://fsincere.free.fr/isn/python/cours_python_tkinter.php
 # http://effbot.org/tkinterbook/
 # https://www.tutorialspoint.com/python/tk_spinbox.htm
+# Lancement automatique par : https://doc.ubuntu-fr.org/tutoriel/application_demarrage#methode_par_ajout_d_un_lanceur/Marcel_Ducamion
 
 try :
     from Tkinter import *
