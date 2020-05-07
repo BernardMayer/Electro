@@ -1087,5 +1087,5 @@ Q: I am a venture capitalist with $20m dollars to employ someone who can write
    superyacht.  May I hire you?
 A: I'll check my diary...
 
-Thanks to / Tak til / Tack til / Takk til/ Dank Aan / Merci à
+Thanks to / Tak til / Tack til / Takk til/ Dank Aan / Merci Ã 
 everyone who has provided feedback and suggestions and helped with testing

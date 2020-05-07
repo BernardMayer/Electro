@@ -1,0 +1,68 @@
+https://groups.google.com/forum/#!topic/kplex/DFnMJjmwPE4 
+
+Every so often someone asks "How can I replay boat data I've logged?".  Usually this is for testing something at home with data logged on board.  Curiously not an issue which troubles those of us who live on boats but no matter...
+In order to "play back" a logged data stream we have to record not only the data we see, but when we see them so that the timing between data is the same on replay as when it was recorded.
+You can log sentences to a log file by specifying a "file" interface.  If adding it on the command line it would look like this:
+
+file:direction=out,filename=/tmp/logfile,timestamp=ms
+
+That last bit tells kplex to add a millisecond timestamp in NMEA-0183v4 TAG format. 
+Unfortunately we can't just feed this log file into another instance of kplex.  Those of you who've tried this will know that kplex just reads its inputs as fast as it can (discarding TAG blocks).  This is generally faster than it can send over a network or serial lines, so inevitably some data will be lost if there is too much to buffer.
+I've hacked together a program to replay timestamped data.  Source is on github:
+https://github.com/stripydog/replay183
+To replay data, first log it with TAG timestamps.  Millisecond timestamps are much better for this than second resolution timestamps.  The syntax for replay183 is:
+
+replay183 [-r] <filename>
+
+where <filename> is your log file.  The first timestamped sentence is sent to standard out immediately, with subsequent timestamped sentences sent at the same times relative to the first as they were when recorded.  Without "-r", sentences are terminated only by a newline (<LF>) which is convenient for piping into the standard input of kplex.  With "-r", sentence are "correctly" terminated with "<CR><LF>". Note that this isn't replaying exactly as they were sent as we're taking liberties with sentence termination according to the replay needs.
+It's all a bit rough and ready but it's there to play with if anyone needs it
+
+.../...
+
+
+Is it correct that with kplex and replay183 we will be able to feed the nmea data to external equipment?
+
+Yes!  Simulations like this are what it was for.  Make sure the data are first recorded with NMEA-0183v4 timestamps per the README then use replay183 to read the file and output either into kplex's standard input or into a named pipe.  Give it a go and let me know if you have problems 
+
+-------------
+https://groups.google.com/forum/#!topic/kplex/7AZtOUZ991A
+
+
+Hello
+Apologize me for my (very) poor english (i'm french)
+
+i just install kplex on raspbian, by dpkg. Nice
+i have an NKE interface who provide ttyUSB0 at 115200 :-)
+dirction=both
+
+kplex get nmea flux are "muxed" to TCP and feed opencpn and qtvlm (amazing sofware like adrena, dedicated to performance)
+
+for simulating navigating, i wish READ an nmea log file
+[file]
+direction=in
+filename=/home/pi/......../namefile.nmea
+
+...and i dont see datas form file
+where is my mistake ?
+thanks by advance
+Bernard
+
+.../...
+
+Sorry...been in lockdown too long away from boat and most computers...
+
+Most likely the problem is that kplex will read *all* the data as fast as it can and output it immediately.  For a simulation what you want is for each sentence in the file to be read with a delay between them equivalent to when you recorded them.  And Yes! replay183 was what that was for.  The requirement of course is that when recording you need to record with timestamps.
+
+The easiest way is to have replay183 read your log file and pipe the output into kplex's standard input, but you may want to create a fifo that you can write the data to whenever you want, e.g. (sorry..I have nothing to test this with here and this is from memory so apologies if I don't get it right first time :-)
+Create your named pipe, e.g. mkfifo /home/pi/mypipe
+...and in kplex config...
+[file]
+filename=/home/pi/mypipe
+persist=yes
+direction=in
+
+Then start kplex
+Then run: replay183  /home/pi/namefile.nmea > /home/pi/mypipe
+
+...at least I think that's how it should work...it's been a while since I looked at this.  Let me know if you have a problem and we can sort it out.
+Bonne chance!

@@ -1,0 +1,62 @@
+This is a program to replay data in NMEA-0183 format which has been logged with
+NMEA-0183v4 TAG timestamps. Timestamps can be millisecond or second resolution,
+but millisecond timestamps will yield playback more consistent with the original
+data stream.
+
+You can log nmea-0183 data to a file using kplex by specifying the following
+additional interface on the command line:
+
+file:direction=out,timestamp=ms,filename=<name>
+
+Where <name> is the name of the file to log to (e.g. /tmp/foo).
+
+Installation
+------------
+
+Just type "make" (or "gmake" where appropriate) to compile (it's only one file).
+"make install" will install to /usr/local/bin, or you can just copy it wherever
+you want.
+
+Usage
+-----
+
+replay183 [-r] [-c | -n <repetitions>] [-d <delay> ] logfile ...
+where logfile is one or more files containing timestamped data to replay.
+if "-c" is specified replay183 will loop continuously through all logfiles
+specifed on the command line.
+If "-n <repetitions>" is specified, replay183 will loop <repetitions> times
+through the specified logfiles.
+If neither -c nor -n is specified, each logfile will be processed once.
+If "-d <delay>" is specified replay183 will wait <delay> milliseconds between
+each file to be processed. The default value is 1000ms (1 second).
+
+Without the "-r" option replay183 will output recorded sentences terminated by a
+single newline ("\n" or "<LF>").  With "-r" specified, the output will be
+terminated by the standard NMEA-0183 sentence termination sequence "\r\n"
+("<CR><LF>").
+
+The output of replay183 can be piped into kplex's standard input (in which case
+there is no need to specify "-r") or sent directly to a process or device
+which accepts data in NMEA-0183 format (in which case "-r" should normally be
+used).
+
+Notes
+-----
+This was cobbled together without much testing so may be buggy.  Let me know
+via the kplex google group.
+
+Timestamps or any other TAG information recorded in the log file is stripped
+from the output.
+
+No checksum checking is performed on the input log file.
+
+On a non-realtime timesharing timing is never going to be exact for playback.
+Moreover the duration of a sentence's transmission at 4800 baud can be 10s of
+milliseconds or more, and kplex adds the timestamp when it outputs to the log
+file (at the end of transmission) whereas replay183 uses the timestamp to
+start transmission.  Timing shoudl be good enough for many testing purposes
+however.
+
+replay183 times sentence transmission relative to the time it started
+rather than the previous sentence.  This should result in the overall time
+taken to replay a log file being close to the time it took to record.
