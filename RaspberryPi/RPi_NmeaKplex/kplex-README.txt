@@ -1,0 +1,1091 @@
+kplex: A multiplexer for various nmea 0183 interfaces
+Copyright Keith Young 2012-2018 <stripydog7@gmail.com>
+Blurb:
+Details of the GPLv3 under which this software is distributed can be found in
+the file COPYING in this directory.
+
+This software almost certainly contains bugs and should not be relied on as
+part of a safety critical system, ie as a sole source of marine navigational
+information.
+
+Installation From Source
+------------------------
+You've got this far so you've unpacked it.  So "make" should be the obvious
+next step.  If you're using FreeBSD or some other system where GNU make is not
+default, you make have to type "gmake" instead.  There's only one executable
+("kplex").
+
+"make install" will install kplex into /usr/bin on Linux systems, /usr/local/bin
+on other systems. You can change this by setting BINDIR. ie to install to
+/usr/sw/bin use:
+make -D BINDIR=/usr/sw/bin install
+alternatively if using sh/ksh/bash:
+BINDIR=/usr/sw/bin make install
+
+The "install" target does not install a start script. Tihs must be done manually
+if required. It does not create a configuration file.  The file "kplex.conf.ex"
+can be used as a starting point to create your own configuration file using the
+information contained in this README file.
+
+"make uninstall" will remove the kplex binary.  If you specified a non-standard
+installation location using BINDIR, specify it again for the uninstall target.
+
+If you want to have kplex start on boot, kplex.init is an example init script
+for debian-derived systems. It expects kplex to be installed in /usr/bin
+and a configuration file in /etc/kplex.conf. Change these as
+necessary, install by copying kplex.init to /etc/init.d/kplex and run:
+update-rc.d kplex defaults
+to create symlinks in the appropriate rc.d directories.
+
+kplex.init will run kplex as root, but this is neither required nor recommended.
+To automatically run kplex as a different user, change RUN_AS_USER as
+appropriate.  The user kplex runs as does require permissions to read
+/write serial interfaces as necessary.  Typically this will mean being a member
+of the group which owns serial devices. On debian-based systems like ubuntu this
+means adding the user to the "dialout" group.
+
+From .deb file
+--------------
+If you've installed from a debian binary package, the startup script and binary
+are installed for you. The default start script is not configured to run at
+boot time but can be made to do so using update-rc.d(8). The start script runs
+kplex as root but this is not recommended.  Instead create a user (e.g.
+"kplex") and change the RUN_AS_USER definition in /etc/init.d/kplex to specify
+that kplex run as that user. Be sure to add this user to the group which owns
+the serial ports (normally "dialout" on modern debian-based systems).
+
+The configuration file the .deb installation installs in /etc/kplex.conf
+actually does nothing (all directives are commented out).  Read the instructions
+in this README file for how to create a confiuration file.  A quick start
+example which bridges between a tcp server and a 38400 baud serial-to-usb
+connection is commented out in this example file.
+
+Invocation:
+-----------
+
+kplex [-V] | [-d 1..9] [-f <filename>] [-p <pidfile>] [-o <option>] <interface> <interface> [<interface> ...]
+
+Where
+The "-d" flag, if specified, will cause kplex to print debugging information,
+the verbosity of which is controlled by the flag's argument with "1" producing
+minimal additional debugging information and "9" producing verbose debug
+information.
+
+<filename> is the path of a configuration file to use where default options and
+interfaces are defined. If not specified, kplex will look for its configuration
+in the following locations and use the first file found:
+* A location specified in the KPLEXCONF environment variable
+* OSX ONLY: ~/Library/Preferences/kplex.ini.  This location is for backwards
+  compatibility, will not be supported in the next major release and its use is
+  discouraged.
+* OS ONLY: ~/Library/Preferences/kplex.conf
+* ~/.kplex.con
+* /etc/kplex.conf
+
+Specifying filename as "-" disables looking for the default configuration files.
+
+<pidfile> is the path of a file where kplex will write its pid for the
+convenience of mechanisms such as init files used to control system processes.
+If this option is specified and kplex finds that <pidfile> is locked by another
+process it will print a warning and exit.
+
+<option> is an option specifier for the form:
+    <varable>=<value>
+These correspond to configuration options which may otherwise be specified in
+"global" section of the configuration file (discussed in the "Configuration
+File" secction below).  Command line configuration options always override
+options given in the configuration file.
+
+<interface> is an interface specifier which takes the form:
+<interface_type>:<option>[,<option> ...]
+where:
+    <interface_type> is one of:
+        "serial": serial nmea 0183 data
+        "file": file (or standard in/out)
+        "tcp": nmea over TCP
+        "udp": nmea over UDP (unicast/broadcast/multicast)
+        "broadcast": nmea over UDP broadcast (DEPRECATED)
+        "bcast": synonym for "broadcast" (DEPRECATED)
+        "multicast": nmea over UDP multicast (DEPRECATED)
+        "mcast": synonym for "multicast" (DEPRECATED)
+        "pty": serial nmea data over a pseudo terminal
+        "gofree": nmea over TCP announced by Navico's "GoFree" protocol
+    <option> is one or more options of the form <var>=<val>. Some options are
+        not optional. Options applicable to all interface types are:
+        "direction":  May normally be one of "in" specifying an input, "out"
+            specifying an output, or "both" specifying a bi-directional
+            interface. Not all directions are applicable to all interface types.
+            The default is "both" if an interface type permits bi-directional
+            commnuication. It is more efficient to specify "in" or "out" if that
+            is all an interface needs to do.
+        "qsize": Size of the interface's output queue. Not used for input only
+            interfaces.  Defaults should be fine. This should only need to be
+            increased from default in the case of a bursty high-speed input
+            feeding a slow ouput.
+        "checksum": May be "yes" to enable checksumming of incoming sentences on
+            an interface or "no" to disable it. This option overrides the global
+            checksum option.
+        "strict": May be "yes" to enable strict parsing of incoming sentences on
+            an interface or "no" to disable it. This option overrides the global
+            strict parsing option.
+        "loopback": May be "yes" to enable sentences read from an interface to
+            be written back to it when communication is bi-directional or "no"
+            (the default) to ensure sentences are not looped back to the
+            interface they were read from.  This option should be used with
+            extreme caution and generally not at all with broadcast or
+            multicast interfaces.  This option has no effect on unidirectional
+            interfaces.
+        "ifilter": Specifies an input filter (see below)
+        "ofilter": Specifies an output filter (see below)
+        "name": Attaches a symbolic name to an interface.  This is only required
+        if you intend to use the interface for failover (see below) but can be
+        helpful for debugging.  The value associated with "name" can be any
+        string consisting of letters and or numbers which is not used as the
+        "name" for another interface.  If no "name" is assigned kplex will
+        autogenerate one starting with an underscore ('_').  For this reason
+        names starting with an underscore should not be manually assigned.
+        Names are NOT case sensitive, so do not call one interface "Serial" and
+        another "serial". 
+        "srctag": Specifies that an NMEA-0183v4 TAG block containing a source
+        identifier be prepended to sentences output on the interface if the
+        value is "yes" or "input".  The src identification string is the
+        interface name (see the "name" option above) truncated to 15 characters
+        or the string "kplex" if the interface name starts with an underscore
+        as is the case with autogenerated (non-user-specified) names. A TAG
+        block prepended by the "srctag=yes" option looks like:
+        \s:kplex*23\
+        If "srctag=no" is specified, no source identifier is prepended.  This is
+        the default.
+        If "srctag=input" is specified, the src identification string is the
+        name of the interface on which the sentence arrived truncated to 15
+        characters or the string "kplex" if no "name" is specified for the input
+        interface.
+        "timestamp": Specifies that an NMEA-0183v4 TAG block containing UNIX
+        time (for example "\c:1423133110*5C\" should be prepended to sentences
+        output on the interface.  The timestamp is in seconds if the value is
+        "s" or milliseconds if the value is "ms".  Note that NMEA-0183v4
+        timestamps do not take account of leap seconds.
+        "optional": If "optional=no" is specified or this option is not given,
+        kplex will exit if it cannot initialize the interface. If "optional=yes"
+        is specified, failure of the interface to initialize will only cause
+        kplex to exit if, as a result of it failing, kplex has no inputs or no
+        outputs.
+
+If source identifier and timestamps are both requested for an interface, they
+are combined into a single TAG block, source identifier first, e.g.:
+\s:kplex,c:1423133048*5F\
+
+The -V flag instructs kplex to print its version number and exit. It should not
+be used with any other options.
+
+Interface Types:
+----------------
+
+Serial Interfaces
+-----------------
+
+This is the traditional way of getting nmea data into your computer.  kplex
+doesn't care whether your device is connected to via a traditional serial
+port or via a USB to serial converter so long as the device on which data are
+presented looks like a character special device and it can be configured with
+baud rate and a minimal set of other parameters. Note that you can't normally
+just plug your nmea tx/rx into a serial port. NMEA is RS422 whereas serial ports
+normally want RS232 input.
+
+    Interface-specific options:
+        filename=<device>
+        baud=<baud>
+        Where
+            <device> is the serial device (e.g. /dev/ttyS0)
+            <baud> is the baud rate.  Defaults to 4800 if unspecified
+            Supported baud rates are: 4800, 9600, 19200, 38400, 57600, 115200,
+            230400 and 460800.
+
+You must minimally specify a device name for a serial interface.  usb to serial
+converters often use /dev/ttyUSB0. Check your /var/adm/messages file and/or udev
+rules.  Note that normal users are often not permitted to open serial devices.  This may mean adding your user to a group which *is* allowed to read the device
+(e.g. "dialout", "uucp" or whatever).
+
+
+"File" interfaces
+-----------------
+
+This specification covers both regular files, FIFOs and terminal i/o via
+standard input and standard output.
+
+    Interface-specific options:
+        filename=<file>
+        persist=[yes|no]
+        append=[yes|no]
+        eol=[rn|n]
+        owner=<user>
+        group=<group>
+        perm=<permissions>
+        Where
+            <file> is either the file name to read from or write to or "-".
+                In the latter case, standard input is used for inputs, standard
+                out for outputs, and standard in and standard out for "BOTH".
+                If not specified deafults to "-".
+            <user> is the user to set ownership of a created output file to.
+            <group> is the group to set a created output file to.
+            <permissions> are the file access permissions, in octal form, to set
+                a created output file to.
+
+"File" interfaces are slightly different from other interfaces in that
+by default sentences are terminated by <LF> rather than <CR><LF>. Because this
+is *nix and we don't want to muck about with redundant '\r's.  Uniquely for
+"file" interfaces "loose" termination checking is default on input.  Sentences
+input with just a terminating '\n' (ie <LF>) or NULL are converted to <CR><LF>
+for output to other interface types (i.e. serial, tcp, broadcast
+etc.).
+
+If the option "eol=rn" is specified, file interfaces will output sentences
+terminated by <CR><LF>. Input sentences will be discarded if they are terminated
+with <LF> not preceded by <CR> and will not have additional <CR>s added.
+
+"eol=n" specifies that the default behaviour for file interfaces (<LF> only as
+sentence delimiter) should be used.
+
+"BOTH" is not supported as an I/O direction for the "file" type except for
+standard in / standard out.
+
+If no "filename" option is given, standard in/out are used.  Standard input and
+output may not be used in "background" mode (ie when kplex is run as a daemon)
+unless they are redirected to a file or a pipe.
+
+If "append=yes" is specified for an interface outputting to a regular file,
+output is appended to the file.  If "append=no" (the default) is specified, the
+file will be truncated before output is written.  This option may not be
+specified for input files, FIFOs or terminals.
+
+"persist=yes" may only be specified on an interface connected to a FIFO. If
+specified it will re-open a FIFO when the reader or writer at the other end
+closes the pipe.  If "persist=no" (the default) is specified, an input interface
+will exit on receipt of EOF. An output interface will exit when the reader at
+the other end of the pipe exits.
+
+FIFOs block on open for read until something opens the FIFO for writing, and
+block on open for write until something opens them for reading.  To avoid
+hanging kplex's initialization thread, opening of FIFOs is delayed until
+individual reader and writer threads have been created.
+
+Output to file interfaces is line buffered.
+
+For output to regular files, if the specified filename does not exist it will be
+created if permissions allow.  If kplex creates an output file, it will be
+owned by the user of the kplex process unless the "owner=" option is specified,
+in which case the file's ownership will be set to the specified username.  On
+most systems, kplex can only set username to something other than the owner of
+the kplex process when run as root.  The group of an output file created by
+kplex will be set to the kplex process's primary group unless the "group="
+option is specified in which case the file's group will be set to the specified
+group.  The group must exist and the kplex process must have permission to
+set a file to that group. Normally this requires the kplex process's owner to
+be a member of the specified group.  An output file created by kplex is normally
+readable and writable by user and group and readable by "other", modified by the
+user's umask.  If "perm=" is specified, the permissions on a file created by
+kplex are set to the option's argument in octal *unmodified* by the processes's
+umask.  Thus "perm=0666" will make the file readable and writable by user, group
+and other regardless of the kplex process's umask.
+
+For output files which pre-exist and for all input files, the user,group and
+perm options are ignored.
+
+TCP Interfaces
+--------------
+
+kplex can act either as a tcp server (allowing other programs on the same or
+other machines to connect to it) or as a tcp client, connecting to servers
+on the same or other systems. In "client" mode, kplex will attempt to
+connect to the server running on the port and address you specify.  This may be
+a kplex tcp server interface or a commercial product, such as an nmea to wifi
+interface box.  You must specify an ip address (IPv4 and IPv6 supported) for
+a tcp client connection.  You may specify a port. If not specified, the port
+used will be the one your system associates with "nmea-0183", or the IANA
+assigned 10110 if your system doesn't know about "nmea-0183".  If using kplex,
+the server port defaults to 10110. Consult manufacturer's documentation for
+the port to use for other products.
+
+In Server mode, kplex listens for incoming connections. These may be from
+programs like iNavX or other instances of kplex.  No data flows until a
+connection is made.  kplex can accept many client connections simultaneously.
+The exact number will be system dependent but it will certainly be "enough".
+
+    Interface-specific options:
+    mode=<mode>
+    address=<address>
+    port=<port>
+    persist=[yes|no|fromstart]
+    retry=<seconds>
+    preamble=<preamble>
+    gpsd=[yes|no]
+    timeout=<timeout>
+    sndbuf=<bufsize>
+    nodelay=[yes|no]
+    keepalive=[yes|no]
+    keepidle=<keepidle>
+    keepintvl=<keepinterval>    * Not Mac OS X < 10.9
+    keepcnt=<count>             * Not Mac OS X < 10.9
+        Where:
+            <mode> is either "server" or "client". If not specified, defaults to
+            "client".
+            <address> is the server address to bind to for output interfaces
+                and the remote tcp server to connect to for inputs.  This can
+                be:
+                * A symbolic hostname (which must be resolvable on the host)
+                * An IPv4 address in dotted decimal format
+                * An IPv6 address
+            For input interfaces, a remote host MUST be specified.  For outputs,
+            if address is not specified, or specified as "-" a wildcard address
+            will be used and the server run on all available interfaces.
+            Whether this is IPv4 only or IPv4 and IPv6 will depend on system
+            configuration.  IPv6 can be forced (if your systenm supports it)
+            using a wildcard address of "0::0".  An IPv6 server can accept IPv4
+            connections on a dual stacked host. You can happily ignore all
+            mention of IPv6 if you want to.
+            The address, if specified for an output, must correspond to one
+            assigned to a interface on the host
+            <port> is the tcp port to run the server on.  If not specified,
+            defaults to the tcp port returned by a lookup of the service
+            "nmea-0183" and if that fails the IANA assigned port for nmea-0183
+            10110 is used.
+            <seconds> is the number of seconds to wait before each attempt at
+            reconnecting a lost tcp connection.  The "retry" option is only
+            valid in conjunction with "persist=yes" or "persist=fromstart"
+            <preamble> is a string of characters to send after connecting to a
+            remote server and before sending data, as described below.
+            <timeout> is the number of seconds to wait for an output operation
+            to complete before assuming a connection has died, abandoning the
+            data send operation and attempting to reconnect the interface.  Only
+            valid with output or bi-directional interfaces and only in
+            conjunction with "persist=yes" or "persist=fromstart". Note that
+            timeouts will not occur while data can still be passed to TCP, so
+            the size of TCP buffers has an impact on how quickly a hung
+            connection will be timed out.
+            <bufsize> is the size in bytes to set the TCP output buffer to.
+            This option is valid only with "persist=yes" or "persist=fromstart"
+            and defaults to 2048.  Without "persist=yes" or "persist=fromstart"
+            system default TCP buffer size is used. A buffer size of 2k should
+            not negatively impact performance in this application.  A smaller
+            output buffer size generally results in hung output connections
+            being detected faster.
+            <keepidle> is the number of seconds of inactivity on a tcp
+            connection to wait before sending the first keepalive probe (see
+            below).  Only valid with "keepalive=yes".
+            <keepinterval> is the number of seconds to wait between
+            each keepalive probe after the first (see below).  Only valid with
+            "keepalive=yes" and not available for Mac OS X prior to Mavericks.
+            <count> is the number of un-replied to keepalive probes  (see
+            below) before a tcp connection is considered lost.  Only valid with
+            "keepalive=yes" and not available for Mac OS X prior to Mavericks.
+
+For most purposes you can just specify "tcp:direction=both,mode=server" to
+create a bi-directional tcp server.
+
+If a client ("mode=client", the default) tcp connection is lost for any reason,
+kplex will not attempt to reconnect if "persist=no" (the default) is specified.
+The interface will shut down, but other interfaces will continue to operate.  If
+"persist=yes" is specified for a client connection, kplex will attempt to
+reconnect when the connection is lost.  When attempting to reconnect an outbound
+or bi-directional connection, kplex will discard all data in its queue to
+minimise the amount of potentially stale data arriving at the server.
+The delay in seconds between successive attempt at reconnection may be specified
+using the "retry" option.  "persist=yes" only tells kplex to reconnect a lost
+connection.  If the first connection attempt fails it will not be re-tried and
+initialisation of that interface will fail.  If persistent attempts to connect
+an initially failed connection are desired, "persist=fromstart" should be
+specified.  Note that this option should be used with care to avoid repeated
+attempts to connect to a mis-typed hostname or address.
+
+kplex will detect a dropped connection if the other end closes down "cleanly",
+i.e. the program it is connecting to shuts down or the machine it is running on
+is gracefully shut down.  If the "timeout" option is specified, kplex will
+consider a connection dropped if it receives no acknowledgment to data it is
+attempting to send within the number of seconds specified in the argument.
+It may not so easily be able to detect a failed endpoint if it is purely reading
+from the other end and it is not notified that the data source has gone away.
+This may frequently happen if connecting from behind NAT (NAT mappings are lost)
+or if the other computer crashes or has power removed.  In these cases it is
+useful to specify the "keepalive=yes" option (the default is "no").  This will
+cause tcp to send probes to the remote end point to check that it is still
+"alive".  The first probe is sent after <keepidle> seconds of inactivity.  The
+default value will be system dependent but is usually 2 hours.  If no reply is
+received to this probe, further probes are sent <keepinterval> seconds apart.
+If <count> probes are sent without reply, kplex considers the connection dropped
+and will attempt to reconnect.  The default values for the interval between
+keepalive probes and the number sent before the connection is considered lost
+are system dependent, but invariably higher than desirable for kplex's purposes.
+On Mac OS X versions prior to Mavericks, only the delay before the initial probe
+is configurable from within kplex, but the other two values are configurable on
+a system-wide basis with sysctl(8).
+
+If "persist=yes" is specified for a tcp client connection but no "keepalive="
+option is given, keepalives will default to "on" and unless explicitly specified
+otherwise, the following values will be set:
+keepidle=30
+keepintvl=10 (Not Mac OS X prior to 10.9)
+keepcnt=3 (Not Mac OS X prior to 10.9)
+
+If "nodelay=yes" is specified or the nodelay option is not used, kplex will
+disable the nagle algorithm on an outbound tcp connection. This results in
+fractionally faster delivery of data to clients at the expense of slightly more
+network traffic and is generalyl desirable on a local area network.  Where
+minimising network use is a priority (such as sending data over a mobile data
+connection with a per-megabyte charge) specifying "nodelay=no" can reduce
+network traffic at the expense of a slight increase in latency.
+ 
+The "preamble" option is used to send a set of characters to a remote server to
+identify a sending station before transmitting data.  It is not part of the
+NMEA-0183 specification (for standards-compliant source identification, use
+source TAGs instead) but is used by some AIS aggregation sites as an alternative
+to per-station dedicated TCP ports.  If specified with the "persist" option, the
+preamble string will be sent after each reconnection following connection loss.
+Non-ASCII characters may be specified either by a backslash followed by the
+(exactly) 3-digit octal representation of the character or the sequence "\x"
+followed by the (exactly) 2-digit hexadecimal representation of the character.
+The NULL character must be specified as "\000" or "\x00" and may not be
+abreviated to "\0" or "\x0".  Standard escape sequences (\a,\b,\f,\r,\n,\t,\v)
+are recognised.  Other escaped characters are sent literally without the leading
+backslash.  Any string termination must be explicitly stated, so a NULL-
+terminated string must end with "\000" or "\x00".  Care must be taken when using
+this option on the command line due to shell interpretation of escape
+characters. Only one "preamble" may be specified and this option may not be used
+with "mode=server".
+
+If "gpsd=yes" is specified kplex will use port 2947 as a default if the "port"
+option is not specified and will set the preamble to:
+?WATCH={"enable":true,"nmea":true}
+This will enable nmea output from an instance of gpsd connected to.  This option
+may not be used with "mode=server" or the "preamble" option.
+
+UDP Interfaces
+--------------
+NOTE: As of kplex 1.3 UDP interfaces are now preferred over the existing
+"broadcast" and "multicast" interface types.  However the "udp" interface is
+new in this version. If you encounter problems, please report the issue and
+consider reverting to the older "broadcast" or "multicast" interface types
+while your problem is under investigation.
+
+This method encapsulates nmea sentences within UDP datagrams which are sent via
+unicast, multicast or broadcast.
+    Interface-specific options:
+    address=<address>
+    port=<port>
+    device=<interface>
+    type=[unicast|broadcast|multicast]
+    coalesce=[yes|no]
+        Where:
+            <address> is the interface address to bind to for inbound kplex
+            interfaces or the address to send to for outbound interfaces. If
+            not specified for an input interface, kplex will receive broadcast
+            and unicast traffic sent to the desired port on a given interface if
+            one is specified, or all interfaces if non is specified.  If no
+            address is specified for an output or bi-directional interface, a
+            system interface must be specified, in which case the broadcast or
+            point-to-point destination address is assumed for outbound datagrams
+            with inbound datagrams received for the address of the specified
+            interface in the case of point-to-point system interfaces or the
+            interface's broadcast address where the system interface is
+            broadcast-capable.  For sending and receiving of multicast datagrams
+            an address must be specified.  kplex should work out whether any
+            provided address is unicast, multicast or broadcast and act
+            accordingly. "group=" is a synonym for "address=" for backwards
+            compatibility with deprecated mcast interfaces.
+            <device> specifies the system interface (e.g. "wlan1", "eth0")
+            to use.  If the kplex interface is inbound and an interface is
+            specified, kplex will attempt to bind to an address if one is
+            specified which belongs to that system interface, or the first
+            address found associated with that system interface if no address
+            is specified. For bi-directional and outbound multicast and
+            broadcast interfaces all traffic is sent and received using a
+            specified system interface.  For bi-directional and outbound unicast
+            interfaces any received traffic will be on the interface specified.
+            For outbound datagrams the source address will be set to an address
+            associated with the specified interface.  If no device is specified
+            for inbound or outbound multicast interfaces, the routing table is
+            used to determine which system interface to use.
+            For broadcast and unicast interfaces inbound traffic will be
+            received on the system interface corresponding to a specified
+            broadcast or unicast address where no system interface is specified
+            or any system address if no device or address is specified.
+            <port> if specified is the udp port or service name. If not
+            specified defaults to the udp port returned by a lookup of the
+            service "nmea-0183" and if that fails the IANA assigned port for
+            nmea-0183 10110 is used.
+
+Note that broadcast is inherently IPv4 (it does not exist in IPv6) and
+inefficient, forcing all nodes on a network to process data which they are
+potentially uninterested in.  Multicast is the superior technique but not
+as widely supported by other marine applications.
+
+Bi-directional unicast interfaces do not necessarily mean what you think they
+mean.  Outbound packets will be sent from an ephemeral port and will be
+received from *any* sender of UDP packets containing valid NMEA-0183 data on
+that port. This is invariably not what you want and it is normally better to use
+separate send and receive interfaces for bi-directional communication over UDP
+between two instances of kplex.
+
+Generally kplex can work out whether an interface should use unicast, multicast
+or broadcast traffic from the supplied <address> so the "type" option should not
+normally be given and doing so to force an mode not consistent with the supplied
+address will result in an error.  One use for the "type" option is when
+supplying a "device" but no "address" option to an inbound interface. In this
+case the receiving interface will expect unicast traffic unless "type=broadcast"
+is explicitly requested.
+
+By default or if "coalesce=no" is specified, input sentences are always
+transmitted one per packet as soon as they can be.  If "coalesce=yes" is
+specified, kplex will buffer parts of a multi-part AIS message so long as
+enough space is available (512 bytes, a minimum of 7 sentences depending ons
+size, can be buffered). Buffered data will be transmitted if the last part of
+the message is received (even if all the intervening parts have not been),
+there is insufficient space to store another sentence, or a sentence arrives
+which is not part of the buffered message. In the latter cases the newly arrived
+sentence is buffered if it is part (but not the last fragment) of a multi-part
+AIS sentence, otherwise it is transmitted immediately.  kplex does not re-order
+out of order fragments of a multi-part AIS message.
+
+Broadcast Interfaces
+--------------------
+Broadcast interfaces are now deprecated and will be removed from a future
+version of kplex. Use udp interfaces instead if possible.
+
+This method involves nmea sentences encapsulated within UDP datagrams sent to a
+broadcast address.
+    Interface-specific options:
+    device=<interface>
+    address=<address>
+    port=<port>
+        Where:
+            <device> specifies the system interface (e.g. "wlan1", "eth0")
+            to use. This must be specified for outbound or bi-directional
+            interfaces. kplex will only broadcast out through one interface.
+            If the kplex interface is inbound and an interface is specified,
+            kplex will attempt to bind to that interface and only accept packets
+            received on that interface.  Unfortunately this is a privileged
+            operation on most GNU/Linux systems and kplex will often silently
+            fail to do this without root privileges.  You can possibly achieve a
+            similar effect without root privileges by use of the <address>
+            specifier (see below). If interface is not specified (or given as
+            "-"), kplex will listen on all interfaces unless an <address> is
+            specified (see below).
+            <port> if specified is the udp port or service name. If not
+            specified defaults to the udp port returned by a lookup of the
+            service "nmea-0183" and if that fails the IANA assigned port for
+            nmea-0183 10110 is used.
+            <address> is the IPv4 interface address to bind to for inbound kplex
+            interfaces or the address to send to for outbound interfaces. If
+            unspecified for an input, kplex will receive broadcast and unicast
+            udp to the relevant port on any <interface> specified, or all system
+            interfaces if none was specified or the user as insufficient
+            privileges to bind to a specific system interface. If an address is
+            specified for an inbound broadcast interface, kplex will receive
+            only packets to that address. Note that if you specify the IP
+            address of a system interface, you will NOT receive broadcast
+            traffic.  If you specify a broadcast address (either the subnet
+            broadcast address or the "all hosts" broadcast address
+            255.255.255.255 you will ONLY receive that *type* of broadcast
+            (ie subnet OR all hosts).  For this reason, this parameter is best
+            left unspecified by most users.  For outbound connections, this
+            parameter specifies the broadcast address to use. It must be a
+            broadcast address appropriate for the system interface you have
+            specified and will default to the subnet broadcast address
+            associated with the first address found for the specified system
+            interface.  If your client programs are particularly stupid they
+            may be expecting the all hosts broadcast address of 255.255.255.255.
+            If things don't work with the default, try this in the <address>.
+
+Note that broadcast is inherently IPv4 (it does not exist in IPv6) and highly
+inefficient, forcing all nodes on a network to process data which they are
+potentially uninterested in.  Multicast is the superior technique but not
+supported by many (if any) marine navigation applications at present.
+
+Multicast Interfaces
+--------------------
+Multicast interfaces are now deprecated and will be removed in a future version
+of kplex. Use udp interfaces instead if possible.
+
+Multicast interfaces are similar to broadcast interfaces, but available with
+IPv6 as well as IPv4 and more efficient.  In an ethernet network, a broadcast
+packet will require all nodes on a network to pass the packet to their
+IP stacks to determine whether or not it is of interest to them.  IP multicast
+addresses map to ethernet multicast addresses.  An operating system tells its
+network interface to accept only multicast packets with hardware addresses
+it is interested in.  The mapping is not 1:1 (many IP multicast addresses map
+to one ethernet multicast address) but on a busy network, use of multicast
+instead of broadcast can dramatically cut down the number of packets a given
+node's network stack needs to process.
+
+    Interface-specific options:
+        group=<multicast address>
+        device=<interface>
+        port=<port>
+        Where:
+            <multicast address> is the multicast group address. This must be
+            specified.
+            <interface> is the network interface to use (e.g., "eth0", "wlan1"
+            etc.).  If unspecified, if a bind address is specified, the system
+            interface assigned that address will be used, otherwise the choice
+            of interface will be left to the system and normally based on the
+            routing table.
+            <port> if specified is the udp port or service name. If not
+            specified defaults to the udp port returned by a lookup of the
+            service "nmea-0183" and if that fails the IANA assigned port for
+            nmea-0183 (10110) is used.
+
+A multicast group address to used must be specified for a "multicast:"
+interface.  For link local IPv6 multicast addresses, an interface device must 
+be specified.
+This may be done in one of two ways:
+    1) by appending the multicast group address with "%" followed by the
+    interface name, for example:
+        group=ff02::a0:200%wlan0
+    2) by specifying the interface with the "device" option, e.g.:
+        device=wlan0
+
+If a device is not specified in one of the above ways for multicast addresses
+other than IPv6 link and interface local groups, the routing table will be used
+to select the outgoing interface for multicast packets.
+
+GoFree Interfaces
+-----------------
+GoFree is Navico's service discovery protocol which allows applications to
+connect to a network services without knowing details of its address.  A
+kplex gofree interfaces listens on the IPv4 multicast address (239.2.1.1) and
+port (2052) which Navico have specified for announcements of the "nmea-0183"
+service.  If not currently connected to an announced "nmea-0183" service, a
+kplex gofree interface will attempt to initiate a connection to the unicast TCP
+IPv4 address/port found in the first appropriate service announcement it sees.
+If a gofree interface is currently connected to an nmea-0183 service, On receipt
+of an announcement for an alternate service location (i.e. the IPv4 address/port
+of an nmea-0183 service on another multifunction display ("MFD"), if the last
+announcement for the currently connected service was more than 2 seconds prior,
+the gofree interface will terminate the current service connection and reconnect
+to the newly announced service.  If the last announcement for the current
+service was less than 2 seconds prior, kplex will only initiate a connection to
+the alternate service if the current connection has terminated.
+
+    Interface-specific options:
+        device=<interface>
+        Where
+            <interface> specifies the system interface (e.g. "wlan1", "eth0") to
+            use.  If unspecified the system will select the interface to listen
+            for service announcements on, normally defaulting to the first
+            multicast-capable non-loopback device.
+
+GoFree does not support bi-directional nmea-0183 connections so all gofree
+interfaces have an implicit "direction=in" option. It is an error to specify
+"direction=out" for a gofree interface.  Any output filters specified for a
+gofree interface are ignored.
+
+Pseudo Terminal (pty) interfaces
+--------------------------------
+
+Pty interfaces are pretty much the same as serial interfaces except that the
+devices concerned do not correspond to physical input and output devices on
+your system. Actually, in the case of inputs it makes no difference whether you
+specify "serial:" "pty:": The code ends up going down the same path.
+
+Where ptys come in handy with kplex is if you want to split a serial input
+between one or more programs running on a computer and possibly some outputs
+too.
+
+
+    Interface-specific options:
+        mode=<mode>
+        filename=<file>
+        baud=<baud>
+        owner=<user>
+        group=<group>
+        perm=<permissions>
+        Where
+            <mode> is either "master" or "slave"
+            <file> is either the pty to connect to in "slave" mode or, in
+            "master" mode, a path name specifying a symbolic link that will be
+            created pointing to the slave side of a master pty
+            <baud> is the baud rate.  Defaults to 4800 if unspecified
+            Supported baud rates are: 4800, 9600, 19200, 38400, 57600, 115200
+            <user> is the username for the slave side of a master pty to be set
+            to.
+            <group> is the group to set the slave side of a master pty to.
+            <permissions> are the permissions in octal form to set the slave
+            side of a master pty to.
+
+<file> must be specified in slave mode.  In master mode, kplex creates a
+master/ slave pty pair. If you give kplex a <file> it will attempt to
+create a symbolic link with that pathname pointing to the slave side of the
+pty it creates. If the path given currently exists as a symbolic link it will
+be replaced. If it exists but is not a symbolic link (e.g. it's a regular file
+or device) kplex will exit with an error.  If no pty name is given, or if it is
+given as "-", kplex just prints the name of the slave pty created without
+creating a symlink.
+
+Specifying a pathname (and creating a symlink) is useful for providing a
+persistent interface.
+
+Where kplex is directed to create a master pty interface with "mode=master",
+the slave side of the pty (which other processes will use to communicate with
+kplex) will be created using system default ownership and permissions.  On
+many systems this will mean the owner of the device will be the owner of the
+kplex process, the group will be set to "tty" and the permissions will be 0620
+(i.e. read/write by owner, write only by group and inaccessible to others).
+
+if "owner=<user>" is specified, the owner of the slave side of a master pty will
+be set to <user> if <user> is a valid system user and the owner of the kplex
+process is permitted to change the file's ownership in this way.  Normally this
+may only be used by a kplex process running as root.
+
+If "group=<group>" is specified, the group of the slave side of a master pty
+will be set to <group> if <group> is a valid system group and the owner of the
+kplex process is permitted to change the file's group in this way.  Normally
+only root or a member of the specified group is able to make this change.
+
+If "perm=<permissions>" is specified where <permissions> are the desired
+permissions of the slave side of a master pty in octal format, permissions are
+set accordingly.  Only file access bits are settable.  Attempts to set
+setuid/setgid/sticky bits will be ignored.  A leading "0" is allowed but not
+required for permissions.  Note that "000" is neither a useful nor, in this
+case, permitted access mode.
+
+As an example, Assume you wish to take AIS input from a serial
+port, make it available to opencpn but also create a tcp server to make the
+data available to inavX on an ipad.  The user of OpenCPN is a member of the
+dialout group but not tty.  You might invoke kplex like this:
+kplex serial:direction=in,filename=/dev/ttyUSB0,baud=38400 \
+pty:direction=out,mode=master,filename=/home/fred/.opencpn/ais,baud=38400,group=dialout,perm=640 \
+tcp:direction=out,mode=server
+
+And add the following to /home/fred/.opencpn/opencpn.conf:
+[Settings/AISPort]
+Port=Serial:/home/fred/.opencpn/ais
+
+This creates the /home/fred/.opencpn/ais, which opencpn will use for its AIS
+input, as a symlink to the slave of a pty which kplex opens at 38400 baud in
+addition to a tcp server.
+
+Filtering
+---------
+kplex allows you specify two types of filter: Input and Output
+Input Filters dictate what sentences an input interface forwards
+Output filters dictate which sentences get passed out of an output interface.
+An input filter is used by input and bi-directional interfaces but ignored by
+output interfaces. Likewise, an output filter is used by output and
+bi-directional interfaces and ignored by input interfaces.
+Connections spawned by servers inherit their parent's filters, so connections to
+a tcp server will be filtered according to the server's filters.
+A filter consists of a series of filter rules. Each filter rule
+consists of a "+", "-" or "~"  (to specify an "ALLOW", "DENY" or "LIMIT" rule,
+respectively) followed by a "match string" which is either the word "all" or 5
+characters.  The match string may optionally be followed by the "%" character
+and the name of an interface (which must have been given to an interface using
+the "name=" option).  A "LIMIT" rule must additionally have a "/" character
+followed by a whole number (i.e. without a decimal point) representing the
+minimum number of seconds which must pass between successive sentences matching
+that rule being permitted to pass.  Filter rules are separated by a colon (":"
+character).  Filter rules are applied in the order they are specified to a
+sentence being filtered.
+
+A filter rule which specifies the word "all" matches all sentences.  If a filter
+rule specifies a 5 character match string, these are compared with the 5
+character NMEA 0183 talker/message type of the sentence being filtered. The
+filter rule matches if each character is the same as the corresponding character
+in the sentence being filtered. A "*" in a filter matches any character.  Thus a
+filter rule specifying:
+GP***
+would match any sentences produced by a GPS talker (excluding any proprietary
+sentences not specifying talker as "GP").
+
+If a source interface has been specified for a rule, a given sentence must
+additionally have entered kplex from an interface with the specified "name" for
+the rule to "match".  Thus a filter specified as
+GP***%Serial1
+would match sentences with a talker id of "GP" *only* if received on the
+interface with the name "Serial1".
+
+When a filter rule "matches" a sentence, it "fires". If the rule was an "allow"
+rule (ie prepended by a "+", the sentence is allowed.  If the rule was a "deny"
+rule (ie prepended by a "-"), the sentence is dropped.  If the rule was a
+"limit" rule, the sentence is passed if and only if time in seconds since the
+last time a sentence matching this that rule was allowed to pass was equal to
+or greater than the number of seconds following the "/" in the rule
+specification.
+
+If no rules are matched the sentence is allowed.  Thus a filter
+such as:
+ifilter=+GP***:+AI***:+SDDBT
+is pointless. It allows all sentences as it denies none. To *only* allow AIS,
+GPS and Depth below transducer sentences, you need to deny what is not
+explicitly allowed by adding "-all" to the end of the filter specification:
+ifilter=+GP***:+AI***:+SDDBT:-all
+Obviously order is important.  Putting "-all" at the beginning would simply deny
+all sentences.
+
+Specifying an interface in a rule applied to an ifilter is generally pointless.
+
+IMPORTANT NOTE:
+proprietary sentences start with "$P" followed by a three character vendor code,
+followed by a vendor-specified string which may be, and often is, more than one
+character in length.  kplex can only filter on the 5 characters following the
+"$" and thus cannot precisely filter all proprietary sentences.
+Similarly kplex cannot completely filter Query sentences which consist of "$"
+followed by the two letter talker id of the requester, the two letter talker id
+of the target talker, the character "Q", a comman and the three character
+sentence mnemonic.  Only the 5 characters after the "$" (ie requester/target
+pair) can be filtered on.
+
+Failover
+--------
+kplex allows you to specify special filters which are intended to allow you to
+use a particular source for one type of data if it is available, but allowing
+that type of data to be passed from another interface if it hasn't been seen
+on the preferred input interface for a specified period of time.  This behaviour
+is specified using the "failover=" directive in the [global] section of the
+configuration file or as a -o option on the command line. The format is:
+failover=<filter>:<delay>:<interface>[:<delay>:<interface>]...
+Where:
+    <filter> is a filter specifier as described in "Filtering" above
+    <delay> is the number of seconds without seeing data which matches the
+    filter on a higher priority interface before the datum is passed
+    <interface> is the name of the interface to which the <delay> specifier
+    applies.  An interface must be given a "name=" option to be usable with
+    failover.
+Any number of :<delay>:<interface> specifiers may be added. Any interface not
+specified on a "failover" line will never pass sentences matching the filter.
+
+"Primary" interfaces (ie those where the data should "normally" come from)
+should be specified with a <delay> of 0.
+
+Example:
+You have 3 GPS sources available. The main GPS is fed via a serial connection
+you have named "serial1".  A second is available from a USB GPS you have
+named "USBpuck".  As a last resort you have your phone transmitting nmea over
+tcp on an input you have named "phone".  You might specify:
+failover=GP***:0:serial1:30:USBpuck:60:phone
+This will always pass sentences with a talker id of "GP" from the interface
+named "serial1". If no "GP" sentences are seen on serial1 for 30 seconds, 
+kplex will pass sentences matching "GP***" from USBpuck until a "GP***" sentence
+is next seen on serial1.  If no "GP***" sentences are seen on either serial1 or
+USBpuck for 60 seconds, kplex will start passing such sentences from the "phone"
+connection until such point as those sentences are seen on either of the higher
+priority interfaces.
+
+Note that failover declarations when made in a configuration file need to be
+put in the "global" section. For configuration file syntax see below.
+
+Stopping
+--------
+kplex closes down if it has no more outputs. If kplex has no more inputs,
+it closes down after all outputs have transmitted any buffered data. Interfaces
+shut down when the end of data input is reached (e.g. on end of file for file
+inputs or a network peer terminates its end of the connection) or on error.
+Outputs terminate when they are unable to write due to a network peer
+terminating or some error condition.
+
+If the process receives a SIGTERM (e.g. from the kill command) or SIGINT (e.g.
+from ctrl-C pressed at the terminal kplex is running in), kplex will shut all
+its interfaces down, allowing any buffered data to be transmitted, before
+exiting.
+
+To stop an instance of kplex which is running in the foreground, hold down the
+"Ctrl" key and hit "c".
+
+To stop an instance of kplex running in daemon mode, send it the termination
+signal, e.g. "pkill kplex".
+
+kplex should always clean up all of its interfaces, including restoring serial
+line settings to what they were when kplex started.  If this doesn't happen
+it's a bug: Please report it.
+
+NMEA-0183v4 TAG block handling
+------------------------------
+kplex will strip all NMEA-0183v4 TAG blocks from the input stream and discard 
+them.  Correctly formatted following sentences will be multiplexed.  kplex
+does not conform to NMEA-0183v4 and will ignore all query and control messages.
+
+Timestamps and source identifiers conform, as far as can be determined from
+publicly available sources, to the NMEA-0183v4 TAG specification.  Note
+however that at this time implementation of TAG block handling in various
+programs and devices is variable and other programs may discard sentences with
+correctly formatted TAG blocks prepended
+
+Example usage
+-------------
+
+Inputs from ais data on one serial port, other nmea data on a serial to usb
+interface. Output to broadcast udp and one usb to serial interface:
+kplex serial:direction=in,filename=/dev/ttyS0,baud=38400 \
+     serial:direction=in,filename=/dev/ttyUSB0 \
+     tcp:direction=out,mode=server \
+     serial:direction=out,filename=/dev/ttyUSB1,baud=38400
+
+Bi-directional communication with tcp server on 192.168.1.50, port 2200. Output
+to pseudo terminal, creating link for opencpn to read and write at /tmp/nmea,
+38400 baud
+kplex tcp:direction=both,mode=client,address=192.168.1.50,port=2200 \
+    pty:direction=both,mode=master,filename=/tmp/nmea,baud=38400
+
+Input from GPS on usb to serial interface, outputting to tcp server, IPv6
+multicast group ff05::10:110 on the default port and a data log file which
+appends an RMC sentence once per hour:
+kplex serial:direction=in,filename=/dev/ttyUSB0 \
+    tcp:mode=server,direction=out \
+    multicast:group=ff05::10:110,direction=out \
+    file:filename=/var/tmp/datalog,direction=out,append=yes,ofilter=~GPRMC/3600:-all
+
+Configuration File syntax
+-------------------------
+The configuration file syntax is similar to the command line sytax, but
+new lines are used to separate options instead of commas and the start of an
+interface specification is signalled by the interface type enclosed by square
+brackets as the only non-white space on a line. Everything that follows the
+start of an interface section is considered an option relating to that interface
+until the beginning of the next interface section or the end of the file.
+
+Everything after a '#' character on a line is ignored.
+
+A special "interface" type, "global", may be used to specify options not
+specific to a particular interface. "global" options currently suppotred are:
+qsize=<qsize>
+    Where:
+    <qsize> is the size (in sentences) of kplex's central multiplexing queue
+    This should not normally need changing.
+mode=<mode>
+    Where:
+    <mode> is either "foreground" (the default) or "background", the former
+    is the default. The latter tells kplex to detach form its controlling
+    terminal and run as a daemon process.
+checksum=[yes|no]
+    Where:
+    "checksum=yes" tells kplex to check the checksum all incoming nmea sentences
+    (except for interfaces where per-interface configuration overrides this).
+    Sentences which do not match their calculated checksums are discarded.  The
+    default is not to calculate checksums as it is assumed that this will be
+    done by end consumer applications.
+strict=[yes|no]
+    Where:
+    "strict=yes" tells kplex to require all sentences received to be correctly
+    terminated with a <CR><LF> sequence unless overridden on a per-interface
+    "strict" option or a per-interface "eol=n".  If "strict=no" is specified all
+    interfaces will default to a looser parsing strategy which will allow input
+    sentences to be terminated by a <CR>, <LF> or NULL (0x00).  This option
+    applies to input sentences only and has no effect on interface output.
+    However terminated on input when loose parsing ("strict=no") is in effect,
+    sentences output from interfaces other than file interfaces will be <CR><LF>
+    terminated. If this value is not specified and no per-interface "strict="
+    specification is given, processing will default to "strict=yes" for all
+    interface types *except* file interfaces.  For "file" interfaces the default
+    is loose ("strict=no") processing.
+logto=<facility>
+    Where <facility> is the syslog facility to use for logging.  The default is
+    "daemon", telling kplex to use the LOG_DAEMON syslog facility. <facility> is
+    the same string as would be used in a syslog.conf(5) file, so to log to
+    LOG_LOCAL7, specify "logto=local7".
+failover=<failover specification>
+    Where <failover specification> is described in the "Failover" section
+    above.
+graceperiod=<secs>
+    Where <secs> is the number of seconds to wait for output to be cleanly sent
+    before termination when kplex shuts down (default 3).
+
+As an example, the first example from the "example usage" section above could
+be specified in a configuration file:
+
+# This is a comment and will be ignored
+[serial]
+direction=in
+filename=/dev/ttyS0
+baud=38400 # baud will be read, but this comment ignored
+# whitespace is ignored
+
+[serial]
+direction=in
+filename=/dev/ttyUSB0
+[tcp]
+direction=out
+mode=server
+[serial]
+direction=out
+filename=/dev/ttyUSB1
+baud=38400
+
+# This is the end of the example file
+
+This second example shows a configuration in which kplex has a GPS puck
+connected via the serial port on a raspberry pi and connects to a TCP data
+source for other information.  The TCP data source also provides GPS information
+but is only used if the directly attached GPS device fails for 15 seconds.  Data
+are then broadcast out of eth0 on the default port 10110. Checksum checking is
+enabled and all sentences which fail their checksum checks are discarded.  The
+"persist=fromstart" option on the TCP interface ensures that kplex will keep
+trying to connect to the remote device even if it is not available when kplex
+starts up.
+
+# Begin example 2
+[global]
+checksum=yes
+failover=GP***:0:puck:15:plotter
+
+[serial]
+filename=/dev/AMA0
+baud=9600
+direction=in
+name=puck
+
+[tcp]
+address=192.168.1.2
+direction=in
+name=plotter
+persist=fromstart
+
+[broadcast]
+device=eth0
+direction=out
+
+# End example 2
+
+To Do
+-----
+Possible future enhancements include:
+* A set of commands to allow modifying kplex on the fly, for example to add,
+  subtract and modify the current interface list.  The structure of kplex means
+  this would be a relatively straightforward addition
+* A nice GUI.  Obviously.
+
+Q&A
+"FAQ" would be inappropriate as some of the questions have never been asked.
+
+Q: Is this free software?
+A: Yes. As in "Beer" and as in "Speech".  It is released under the terms of
+   GPLv3 (see the COPYING file which should be included with this software)
+
+Q: Does this run on a raspberry pi?
+A: Yes.  Note the 3.3v weirdness of the serial interface though if not using
+   serial to usb adaptors.
+
+Q: Can I use this to bridge to an ipad using just my laptop?
+A: Not exactly.  kplex does not create a wireless access point, it just uses
+   a linux computer's existing wireless interfaces. If you want to create a
+   wireless access point using a linux system, check out hostapd.  An
+   Alternative may be to use ad hoc networking to connect to your wireless
+   device (The comar box does this).
+
+Q: Why "kplex"?
+A: Originally it was called "mplex", but that's the name of an mpeg stream
+   multiplexer for linux. changing only one letter of the name simplified
+   changing the file names.  And "kplex" scores loads in french scrabble.
+
+Q: Is this available for windows/plan9/haiku/solaris
+A: It shouldn't be much work to port to another POSIX-compliant system. If
+   anyone genuinely wants such a thing let me know.  For windows a better plan
+   would be to port it all to java (on the to do list). It has been ported to
+   Solaris but the ifdefs make the code uglier and Larry has turned my previous
+   OS of choice to the darkside so support is not included in the mainstream
+   codebase.
+
+Q: I am a venture capitalist with $20m dollars to employ someone who can write
+   multithreaded IPv6 network code and also look after my infrequently used
+   superyacht.  May I hire you?
+A: I'll check my diary...
+
+Thanks to / Tak til / Tack til / Takk til/ Dank Aan / Merci à
+everyone who has provided feedback and suggestions and helped with testing
