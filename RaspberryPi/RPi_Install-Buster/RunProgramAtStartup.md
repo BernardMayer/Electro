@@ -1,9 +1,9 @@
-#Run a Program On Your Raspberry Pi At Startup
+# Run a Program On Your Raspberry Pi At Startup
 
 
 https://www.dexterindustries.com/howto/run-a-program-on-your-raspberry-pi-at-startup/
 
-In this tutorial we show you five ways you can run a program on your Raspberry Pi at startup.  The <span style="color:red">five</span> methods that are available to run a program at boot are:
+In this tutorial we show you five ways you can run a program on your Raspberry Pi at startup.  The five methods that are available to run a program at boot are:
 
     * rc.local
     * .bashrc
@@ -11,7 +11,7 @@ In this tutorial we show you five ways you can run a program on your Raspberry P
     * systemd
     * crontab
 
-##Sample Program
+## Sample Program
 
 You can use any program that you want to run at boot; for this tutorial we are using a sample python program which will speak at the startup of Raspberry Pi.  This sample program will use the Espeak package to make the Raspberry pi speak “Welcome to the world of Robots”.
 
@@ -33,12 +33,12 @@ And enter the following code and save it (press CTRL+X and enter Y ).
 
 <image>
 
-##Method 1: rc.local
+## Method 1: rc.local
 
 
 The first method to run a program on your Raspberry Pi at startup is to use the file rc.local. In order to have a command or program run when the Pi boots, you can add commands to the rc.local file. This is especially useful if you want to power up your Pi in headless mode (that is without a connected monitor), and have it run a program without configuration or a manual start.
 
-###Editing rc.local
+### Editing rc.local
 
 On your Pi, edit the file /etc/rc.local using the editor of your choice. You must edit it with root permissions:
 
@@ -58,7 +58,7 @@ Now reboot the Pi to test it:
 
 sudo reboot
 
-###Hints
+### Hints
 
 Also, be sure to reference absolute file names rather than relative to your home folder. For example use `/home/pi/myscript.py` instead of `myscript.py`.
 
@@ -66,7 +66,7 @@ If you add a script into /etc/rc.local, it is added to the boot sequence. If you
 
 	sudo python /home/pi/sample.py & > /home/pi/Desktop/log.txt 2>&1
 
-##Method 2: .bashrc
+## Method 2: .bashrc
 
 The second method to run a program on your Raspberry Pi at startup is to modify the .bashrc  file. With the .bashrc method, your python program will run when you log in (which happens automatically when you boot up and go directly to the desktop) and also every time when a new terminal is opened, or when a new SSH connection is made. Put your command at the bottom of ‘/home/pi/.bashrc’. The program can be aborted with ‘ctrl-c’ while it is running!
 
@@ -89,7 +89,7 @@ The below image shows that the commands added to .bashrc file get executed even 
 
 <image>
 
-##Method 3: init.d directory
+## Method 3: init.d directory
 
 The third method to run a program on your Raspberry Pi at startup is to add the program (to be run on boot) to the /etc/init.d directory.  This directory contains the scripts which are started during the boot process (in addition, all programs here are  executed when you shutdown or reboot the system).
 
@@ -133,10 +133,11 @@ Now reboot to hear the Pi speak at startup.
 
 	sudo reboot
 
-##Method 4: SYSTEMD
+## Method 4: SYSTEMD
 
 The fourth method to run a program on your Raspberry Pi at startup is to use the systemd files. systemd provides a standard process for controlling what programs run when a Linux system boots up. Note that systemd is available only from the Jessie versions of Raspbian OS.
-Step 1– Create A Unit File
+
+### Step 1– Create A Unit File
 
 Open a sample unit file using the command as shown below:
 
@@ -169,7 +170,7 @@ The permission on the unit file needs to be set to 644 :
 
 	sudo chmod 644 /lib/systemd/system/sample.service
 
-Step 2 – Configure systemd
+### Step 2 – Configure systemd
 
 Now the unit file has been defined we can tell systemd to start it during the boot sequence :
 
