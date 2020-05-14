@@ -31,7 +31,7 @@ And enter the following code and save it (press CTRL+X and enter Y ).
 	from subprocess import call
 	call([‘espeak “Welcome to the world of Robots” 2>/dev/null’], shell=True)
 
-<image>
+![alt text](https://www.dexterindustries.com/wp-content/uploads/2014/11/test.png)
 
 ## Method 1: rc.local
 
@@ -46,7 +46,7 @@ On your Pi, edit the file /etc/rc.local using the editor of your choice. You mus
 
 Add commands to execute the python program, preferably using absolute referencing of the file location (complete file path are preferred). Be sure to leave the line exit 0 at the end, then save the file and exit. In nano, to exit, type Ctrl-x, and then Y.
 
-<image>
+![alt text](https://www.dexterindustries.com/wp-content/uploads/2014/11/test1.png)
 
 If your program runs continuously (runs an infinite loop) or is likely not to exit, you must be sure to fork the process by adding an ampersand (“&”) to the end of the command, like:
 
@@ -56,7 +56,7 @@ The Pi will run this program at bootup, and before other services are started.  
 
 Now reboot the Pi to test it:
 
-sudo reboot
+	sudo reboot
 
 ### Hints
 
@@ -79,7 +79,7 @@ Go to the last line of the script and add:
 
 The echo statement above is used to show that the commands in .bashrc file are executed on bootup as well as connecting to bash console.
 
-<image>
+![alt text](https://www.dexterindustries.com/wp-content/uploads/2014/11/test3.png)
 
 Now reboot the Pi to hear the Pi speak at startup.
 
@@ -87,7 +87,7 @@ Now reboot the Pi to hear the Pi speak at startup.
 
 The below image shows that the commands added to .bashrc file get executed even while opening a new terminal.
 
-<image>
+![alt text](https://www.dexterindustries.com/wp-content/uploads/2014/11/test4.png)
 
 ## Method 3: init.d directory
 
@@ -119,7 +119,7 @@ init.d scripts require the above runtime dependencies to be documented so that i
 
 You can learn to write init.d scripts following the guide here.
 
-<image>
+![alt text](https://www.dexterindustries.com/wp-content/uploads/2014/11/test5.png)
 
 Make the sample script in the init directory executable by changing its permission.
 
@@ -158,7 +158,7 @@ Add in the following text :
 
 You should save and exit the nano editor.
 
-<image>
+![alt text](https://www.dexterindustries.com/wp-content/uploads/2014/11/test6.png)
 
 This defines a new service called “Sample Service” and we are requesting that it is launched once the multi-user environment is available. The “ExecStart” parameter is used to specify the command we want to run. The “Type” is set to “idle” to ensure that the ExecStart command is run only when everything else has loaded. Note that the paths are absolute and define the complete location of Python as well as the location of our Python script.
 
@@ -181,7 +181,7 @@ Reboot the Pi and your custom service should run:
 
 	sudo reboot
 
-<image>
+![alt text](https://www.dexterindustries.com/wp-content/uploads/2014/11/test7.png)
 
 ##Method 5: crontab
 
