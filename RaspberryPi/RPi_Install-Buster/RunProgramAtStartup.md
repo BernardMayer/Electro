@@ -3,7 +3,7 @@
 
 https://www.dexterindustries.com/howto/run-a-program-on-your-raspberry-pi-at-startup/
 
-In this tutorial we show you five ways you can run a program on your Raspberry Pi at startup.  The five methods that are available to run a program at boot are:
+In this tutorial we show you five ways you can run a program on your Raspberry Pi at startup.  The <span style="color:red">five</span> methods that are available to run a program at boot are:
 
     * rc.local
     * .bashrc
