@@ -183,7 +183,7 @@ Reboot the Pi and your custom service should run:
 
 ![alt text](https://www.dexterindustries.com/wp-content/uploads/2014/11/test7.png)
 
-##Method 5: crontab
+## Method 5: crontab
 
 A detailed tutorial on using crontab to get a program running on boot can found here.
 
