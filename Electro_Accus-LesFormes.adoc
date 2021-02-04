@@ -1,0 +1,79 @@
+= Electro :: Les différentes formes des accus
+Bernard Mayer
+v1.0, 2020-12-09
+:toc-title: Table des matières
+:toc: preamble
+// Pour que la toc soit numérotée
+:numbered:
+:toclevels: 3
+:imagedir: ./img
+
+:ldquo: &laquo;&nbsp;
+:rdquo: &nbsp;&raquo;
+:ge: &ge;
+:le: &le;
+:demicadratin: &ndash;
+
+:description: Panoramas des différents accus \
+    identification dimensions capacités ...
+
+----
+Electro :: Les différentes formes, dimensions, capacités des accuumlateurs.
+----
+
+// ---------------------------------------------------------------------------
+
+== Accus plomb (batteries)
+Ces batteries fonctionnent à partir de la réaction entre 2 éléments de nature chimique différentes dans un bain acide.
+Comme il y a des réactions thermiques, 
+si le bain est liquide ou fluide, il convient d'éviter des épanchements.
+Comme il y a des émanations gazeuses, il convient de pouvoir échanger avec l'air extérieur.
+
+Donc, *ce type d'accu n'est pas étanche* ! +
+Comme cela peut être un gros problème, des solutions existent.
+Toutefois, il convient d'être très attentif à ce sujet...
+
+=== Pb, PbCa
+*Tension nominale d'un élément : 2 V* +
+Communément assemblés en bloc de 6 V ou 12 V...
+
+Utilisés dans le bateau, dans le van, ou pour l'autonomie électrique des habitats.
+Ceux que j'utilise sont dit {ldquo}sans entretien{rdquo},
+ce qui est un raccourci pour étanche. 
+Toutefois, en prévention d'un dégagement gazeux trop important,ils sont munis de valves susceptibles de laissées échapper le bain acide.
+
+.Dimensions
+Voir link:http://polebatterie38.com/wp-content/uploads/2011/08/CATALOGUE1.pdf[] +
+_(Document sauvegardé dans le dépot {ldquo}bateau{rdquo})_
+
+242x175x190 Lxlxh bac L2D ou LB1D ou LB2D *L2* *L260* _(DIN)_
+
+ou norme NF EN 50342-2 anciennement Nf EN 60095
+
+=== Gel, AGM
+Je n'en ai pas :-( 
+
+
+== Accus NiCad
+Il en reste ?
+
+
+== Accus Lithium
+Utilisés dans les équipements électriques/électroniques, à la place des accus niCad. Vu le champs des possible, ils ouvrent de nouveaux usages en mobilité.
+
+Voir l'article dans wikipedia : link:en.wikipedia.org/wiki/List_of_battery_sizes[] (en anglais)
+
+=== Li-ion
+*Tension nominaled'un élément : 3.7 V*
+
+Typiquement,la référence / l'identifiant révèle les dimensions des accus Lithium-ion cylindriques. 
+
+* les 2 premiers chiffres indiquent le diamètre en millimètre
+* les 3 chiffres suivant en 1/10 de millimètre
+* Par exemple ; 18650 -> 18 mm de diamètre, et 65 mm de long
+
+=== LiFePo
+*Tension nominaled'un élément : 2.? V*
+
+Utilisé en modélisme
+
